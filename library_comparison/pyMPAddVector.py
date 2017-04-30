@@ -5,6 +5,7 @@
 import sys
 import time
 import pickle
+import pymp
 
 # Get the current test case from command line arguments
 test_case_num=int(sys.argv[1])
@@ -15,19 +16,23 @@ y=pickle.load(open('test_case_'+str(test_case_num)+'_y.pkl','rb'))
 
 # create a output list based on input data
 size=len(x)
-z=[0]*size
+
+# A pyMP shared array is a numpy array which lies in the shared memory region of all pyMP threads
+z=pymp.shared.array((size,),autolock=False)
 
 # Record start time
 before=time.time()
 
-# Vector sum computation
-for i in range(0,size):
-	z[i]=x[i]+y[i]
+# Specify pyMP directive (like openMP: syntactic sugar)
+# Use threads to parallelize computation
+with pymp.Parallel(4) as p:
+	for i in p.range(0,size):
+		z[i]=x[i]+y[i]
 
 # Record end time and write to out file
 timeElapsed=time.time()-before
-with open('py_serial.out','a') as outFile:
+with open('py_pyMP.out','a') as outFile:
 	outFile.write(str(timeElapsed)+'\n')
 
-print(size,'Python serial time:',timeElapsed,'seconds')
+print(size,'Python pyMP time:',timeElapsed,'seconds')
 # print(z)
